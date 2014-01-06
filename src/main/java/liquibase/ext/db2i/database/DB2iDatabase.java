@@ -33,4 +33,9 @@ public class DB2iDatabase extends DB2Database {
     public String getShortName() {
         return "db2i";
     }
+
+    @Override
+    public boolean supportsSchemas() {
+        return true;
+    }
 }
