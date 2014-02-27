@@ -50,18 +50,8 @@
 		<dependency>
 			<groupId>org.liquibase</groupId>
 			<artifactId>liquibase-core</artifactId>
-			<version>3.0.8-SNAPSHOT</version>
+			<version>3.1.1</version>
 		</dependency>
-        <dependency>
-            <groupId>org.liquibase</groupId>
-            <artifactId>liquibase-core-logic</artifactId>
-            <version>3.0.8-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.liquibase</groupId>
-            <artifactId>liquibase-sdk</artifactId>
-            <version>3.0.8-SNAPSHOT</version>
-        </dependency>
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
