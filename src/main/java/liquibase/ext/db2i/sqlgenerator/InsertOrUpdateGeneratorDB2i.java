@@ -6,41 +6,50 @@ import liquibase.exception.LiquibaseException;
 import liquibase.ext.db2i.database.DB2iDatabase;
 import liquibase.sqlgenerator.SqlGeneratorChain;
 import liquibase.sqlgenerator.core.InsertOrUpdateGenerator;
+import liquibase.sqlgenerator.core.InsertOrUpdateGeneratorDB2;
 import liquibase.statement.DatabaseFunction;
 import liquibase.statement.core.InsertOrUpdateStatement;
 
 import java.util.Date;
 
 /**
+ * DBMS-specific {@link InsertOrUpdateGenerator} for IBM DB2 running on IBM iSeries. Uses "MERGE"-Statement with a
+ * 10x - 15x performance-boost compared to {@link liquibase.sqlgenerator.core.InsertOrUpdateGeneratorDB2} which is the
+ * default implementation that is also compatible with DB2/LUW (Linux, Unix, Windows)
+ * <br>
+ * Needs IBM iSeries OS release V7R1M0 or newer.
+ * This is the first publicly available V7 release. V6 and older are EOL.
+ *
  * @author Daniel Göbbels; daniel.goebbels@veda.net
  * @author Jan Ophey; jan.ophey@veda.net
+ * @see <a href="https://www-01.ibm.com/support/knowledgecenter/ssw_ibm_i_71/sqlp/rbafymerge.htm">
+ * IBM Knowledge Center: Database > Programming > SQL programming > Data manipulation language > Merging data</a>
  */
 public class InsertOrUpdateGeneratorDB2i extends InsertOrUpdateGenerator {
 
 	@Override
-	public boolean supports(InsertOrUpdateStatement statement, Database database) {
-		return database instanceof DB2iDatabase;
+	public boolean supports(InsertOrUpdateStatement stmt, Database db) {
+		return db instanceof DB2iDatabase;
 	}
 
 	@Override
 	public int getPriority() {
-		return super.getPriority() + 5;
+		//prefer us over default db2 implementation if applicable
+		return new InsertOrUpdateGeneratorDB2().getPriority() + 1;
 	}
 
 	@Override
-	protected String getRecordCheck(InsertOrUpdateStatement insertOrUpdateStatement, Database database,
-	                                String whereClause) {
-		StringBuilder sql = new StringBuilder();
-		sql.append("MERGE INTO ")
-				.append(buildTableName(insertOrUpdateStatement, database))
+	protected String getRecordCheck(InsertOrUpdateStatement stmt, Database db, String whereClause) {
+		StringBuilder sql = new StringBuilder("MERGE INTO ")
+				.append(db.escapeTableName(stmt.getCatalogName(), stmt.getSchemaName(), stmt.getTableName()))
 				.append(" AS DST ")
 				.append("USING (")
 				.append("VALUES (")
-				.append(getValues(insertOrUpdateStatement, database))
+				.append(getValues(stmt, db))
 				.append(") ) AS SRC( ")
-				.append(buildColumns(insertOrUpdateStatement))
+				.append(buildColumns(stmt))
 				.append(") ON ");
-		String[] keys = insertOrUpdateStatement.getPrimaryKey().split(",");
+		String[] keys = stmt.getPrimaryKey().split(",");
 		for (String key : keys) {
 			sql.append("DST.").append(key)
 					.append(" = SRC.").append(key)
@@ -51,40 +60,38 @@ public class InsertOrUpdateGeneratorDB2i extends InsertOrUpdateGenerator {
 		return sql.toString();
 	}
 
-
 	@Override
-	protected String getInsertStatement(InsertOrUpdateStatement insertOrUpdateStatement, Database database,
-	                                    SqlGeneratorChain sqlGeneratorChain) {
+	protected String getInsertStatement(InsertOrUpdateStatement stmt, Database db, SqlGeneratorChain sqlGeneratorChain) {
 		StringBuilder columns = new StringBuilder();
 		StringBuilder values = new StringBuilder();
-		for (String columnKey : insertOrUpdateStatement.getColumnValues().keySet()) {
+		for (String columnKey : stmt.getColumnValues().keySet()) {
 			columns.append(", ");
 			columns.append(columnKey);
 			values.append(", ");
-			if (insertOrUpdateStatement.getColumnValues().get(columnKey).toString().equalsIgnoreCase("NULL")) {
+			if (stmt.getColumnValues().get(columnKey).toString().equalsIgnoreCase("NULL")) {
 				values.append("NULL");
 			} else {
 				values.append("SRC.").append(columnKey);
 			}
 		}
-		columns.deleteCharAt(0);
+		columns.deleteCharAt(0); // remove leading commas
 		values.deleteCharAt(0);
-		return " INSERT(" + columns.toString() + ")\n\t\tVALUES(" + values.toString() + ") ";
+		return " INSERT(" + columns.toString() + ") VALUES (" + values.toString() + ") ";
 	}
 
 	@Override
-	protected String getElse(Database database) {
+	protected String getElse(Database db) {
 		return " WHEN MATCHED THEN ";
 	}
 
 	@Override
-	protected String getUpdateStatement(InsertOrUpdateStatement statement, Database database, String whereClause, SqlGeneratorChain sqlGeneratorChain) throws LiquibaseException {
+	protected String getUpdateStatement(InsertOrUpdateStatement stmt, Database db, String whereClause, SqlGeneratorChain sqlGeneratorChain) throws LiquibaseException {
 		StringBuilder sql = new StringBuilder("UPDATE SET ");
-		for (String column : statement.getColumnValues().keySet()) {
+		for (String column : stmt.getColumnValues().keySet()) {
 			sql.append(" ")
 					.append(column)
 					.append(" = ")
-					.append(getValueAsDatabaseType(statement.getColumnValues().get(column), database, false))
+					.append(getValueAsDatabaseType(stmt.getColumnValues().get(column), db, false))
 					.append(", ");
 		}
 		sql.deleteCharAt(sql.lastIndexOf(" "));
@@ -96,19 +103,10 @@ public class InsertOrUpdateGeneratorDB2i extends InsertOrUpdateGenerator {
 		return sql.toString();
 	}
 
-	private String buildTableName(InsertOrUpdateStatement insertOrUpdateStatement, Database database) {
-		return database.escapeTableName(
-				insertOrUpdateStatement.getCatalogName(),
-				insertOrUpdateStatement.getSchemaName(),
-				insertOrUpdateStatement.getTableName()
-		);
-	}
-
-	private StringBuilder buildColumns(InsertOrUpdateStatement insertOrUpdateStatement) {
+	private StringBuilder buildColumns(InsertOrUpdateStatement stmt) {
 		StringBuilder columns = new StringBuilder();
-		for (String columnKey : insertOrUpdateStatement.getColumnValues().keySet()) {
-
-			if (insertOrUpdateStatement.getColumnValues().get(columnKey).toString().equalsIgnoreCase("NULL")) {
+		for (String columnKey : stmt.getColumnValues().keySet()) {
+			if (stmt.getColumnValues().get(columnKey).toString().equalsIgnoreCase("NULL")) {
 				continue;
 			}
 			columns.append(",");
@@ -119,34 +117,30 @@ public class InsertOrUpdateGeneratorDB2i extends InsertOrUpdateGenerator {
 	}
 
 
-	private String getValueAsDatabaseType(Object newValue, Database database, boolean skipNullValue) {
+	private String getValueAsDatabaseType(Object newValue, Database db, boolean skipNullValue) {
 		if (newValue == null || newValue.toString().equalsIgnoreCase("NULL")) {
-			if (skipNullValue) {
-				return "";
-			} else {
-				return "NULL";
-			}
-		} else if (newValue instanceof String && !looksLikeFunctionCall(((String) newValue), database)) {
-			return DataTypeFactory.getInstance().fromObject(newValue, database).objectToSql(newValue, database);
+			return skipNullValue ? "" : "NULL";
+		} else if (newValue instanceof String && !looksLikeFunctionCall(((String) newValue), db)) {
+			return DataTypeFactory.getInstance().fromObject(newValue, db).objectToSql(newValue, db);
 		} else if (newValue instanceof Date) {
-			return database.getDateLiteral(((Date) newValue));
+			return db.getDateLiteral(((Date) newValue));
 		} else if (newValue instanceof Boolean) {
 			if (((Boolean) newValue)) {
-				return DataTypeFactory.getInstance().getTrueBooleanValue(database);
+				return DataTypeFactory.getInstance().getTrueBooleanValue(db);
 			} else {
-				return DataTypeFactory.getInstance().getFalseBooleanValue(database);
+				return DataTypeFactory.getInstance().getFalseBooleanValue(db);
 			}
 		} else if (newValue instanceof DatabaseFunction) {
-			return database.generateDatabaseFunctionValue((DatabaseFunction) newValue);
+			return db.generateDatabaseFunctionValue((DatabaseFunction) newValue);
 		} else {
 			return newValue.toString();
 		}
 	}
 
-	private String getValues(InsertOrUpdateStatement statement, Database database) {
+	private String getValues(InsertOrUpdateStatement stmt, Database db) {
 		StringBuilder values = new StringBuilder();
-		for (String column : statement.getColumnValues().keySet()) {
-			final String newValue = getValueAsDatabaseType(statement.getColumnValues().get(column), database, true);
+		for (String column : stmt.getColumnValues().keySet()) {
+			final String newValue = getValueAsDatabaseType(stmt.getColumnValues().get(column), db, true);
 			if (newValue != null && newValue.length() > 0) {
 				values.append(newValue)
 						.append(", ");
