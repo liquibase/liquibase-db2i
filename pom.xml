@@ -4,7 +4,7 @@
 
 	<groupId>org.liquibase.ext</groupId>
 	<artifactId>liquibase-db2i</artifactId>
-	<version>3.9.0</version>
+	<version>3.9.1-SNAPSHOT</version>
 
 	<name>Liquibase Extension: IBM DB2 for iSeries Support</name>
 	<description>Adds support for IBM DB2 for iSeries</description>
@@ -29,7 +29,7 @@
 	<scm>
 		<connection>scm:git:http://github.com/liquibase/liquibase-db2i.git</connection>
 		<url>https://github.com/liquibase/liquibase-db2i</url>
-	  <tag>liquibase-db2i-3.9.0</tag>
+	  <tag>HEAD</tag>
   </scm>
 
 	<developers>
