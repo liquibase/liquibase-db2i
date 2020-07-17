@@ -4,7 +4,7 @@
 
 	<groupId>org.liquibase.ext</groupId>
 	<artifactId>liquibase-db2i</artifactId>
-	<version>3.10.2-SNAPSHOT</version>
+	<version>4.0.1-SNAPSHOT</version>
 
 	<name>Liquibase Extension: IBM DB2 for iSeries Support</name>
 	<description>Adds support for IBM DB2 for iSeries</description>
@@ -51,7 +51,7 @@
 		<dependency>
 			<groupId>org.liquibase</groupId>
 			<artifactId>liquibase-core</artifactId>
-			<version>3.10.0</version>
+			<version>4.0.0-beta2</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
@@ -73,8 +73,8 @@
 				<plugin>
 					<artifactId>maven-compiler-plugin</artifactId>
 					<configuration>
-						<source>1.6</source>
-						<target>1.6</target>
+						<source>1.8</source>
+						<target>1.8</target>
 						<optimize>true</optimize>
 						<debug>true</debug>
 						<encoding>${project.build.sourceEncoding}</encoding>
