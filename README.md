@@ -1,4 +1,4 @@
-# Liquibase DB2 iSeries Extension 
+# Liquibase DB2 iSeries Extension [![Build and Test Extension](https://github.com/liquibase/liquibase-db2i/actions/workflows/build.yml/badge.svg)](https://github.com/liquibase/liquibase-db2i/actions/workflows/build.yml)
 
 This is a Liquibase DB2 extension for iSeries support. [DB2 iSeries](https://www.ibm.com/products/db2-database) enables Liquibase to connect to DB2 iSeries data sources. 
 
