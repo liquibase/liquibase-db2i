@@ -41,7 +41,7 @@ public class InsertSetGeneratorDB2i extends InsertSetGenerator {
         if (statement.peek() == null) {
             return new UnparsedSql[0];
         }
-        StringBuffer sql = new StringBuffer();
+        StringBuilder sql = new StringBuilder();
         generateHeader(sql, statement, database);
 
         ArrayList<Sql> result = new ArrayList<Sql>();
@@ -54,7 +54,7 @@ public class InsertSetGeneratorDB2i extends InsertSetGenerator {
                 result.add(completeStatement(statement, sql));
 
                 index = 0;
-                sql = new StringBuffer();
+                sql = new StringBuilder();
                 generateHeader(sql, statement, database);
             }
         }
@@ -65,7 +65,7 @@ public class InsertSetGeneratorDB2i extends InsertSetGenerator {
         return result.toArray(new UnparsedSql[result.size()]);
     }
 
-    private Sql completeStatement(InsertSetStatement statement, StringBuffer sql) {
+    private Sql completeStatement(InsertSetStatement statement, StringBuilder sql) {
         sql.deleteCharAt(sql.lastIndexOf(","));
         return new UnparsedSql(sql.toString(), getAffectedTable(statement));
     }
