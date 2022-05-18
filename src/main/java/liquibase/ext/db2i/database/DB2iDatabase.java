@@ -1,8 +1,11 @@
 package liquibase.ext.db2i.database;
 
+import liquibase.Scope;
 import liquibase.database.DatabaseConnection;
 import liquibase.database.core.DB2Database;
 import liquibase.exception.DatabaseException;
+import liquibase.executor.ExecutorService;
+import liquibase.statement.core.RawSqlStatement;
 
 public class DB2iDatabase extends DB2Database {
 
@@ -37,5 +40,21 @@ public class DB2iDatabase extends DB2Database {
     @Override
     public boolean supportsSchemas() {
         return true;
+    }
+
+    @Override
+	public boolean supportsBooleanDataType() {
+        if (getConnection() == null)
+            return false;
+        try {
+            final Integer countBooleanType = Scope.getCurrentScope().getSingleton(ExecutorService.class).getExecutor("jdbc", this).queryForObject(
+                    new RawSqlStatement("select count(*) from sysibm.sqltypeinfo where type_name = 'BOOLEAN';"),
+                    Integer.class);
+            if (countBooleanType == 1)
+                return true;
+        } catch (final Exception e) {
+            Scope.getCurrentScope().getLog(getClass()).info("Error checking for BOOLEAN type", e);
+        }
+        return false;
     }
 }
