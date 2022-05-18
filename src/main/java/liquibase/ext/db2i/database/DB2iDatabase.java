@@ -48,7 +48,7 @@ public class DB2iDatabase extends DB2Database {
             return false;
         try {
             final Integer countBooleanType = Scope.getCurrentScope().getSingleton(ExecutorService.class).getExecutor("jdbc", this).queryForObject(
-                    new RawSqlStatement("select count(*) from sysibm.sqltypeinfo where type_name = 'BOOLEAN';"),
+                    new RawSqlStatement("select count(*) from sysibm.sqltypeinfo where type_name = 'BOOLEAN'"),
                     Integer.class);
             if (countBooleanType == 1)
                 return true;
