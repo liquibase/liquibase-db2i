@@ -44,14 +44,14 @@ public class InsertSetGeneratorDB2i extends InsertSetGenerator {
         StringBuilder sql = new StringBuilder();
         generateHeader(sql, statement, database);
 
-        ArrayList<Sql> result = new ArrayList<Sql>();
+        ArrayList<Sql> result = new ArrayList<>();
         int index = 0;
         for (InsertStatement sttmnt : statement.getStatements()) {
             index++;
             getInsertGenerator(database).generateValues(sql, sttmnt, database);
             sql.append(",");
             if (index > statement.getBatchThreshold()) {
-                result.add(completeStatement(statement, sql));
+                result.add(generateCompleteStatement(statement, sql));
 
                 index = 0;
                 sql = new StringBuilder();
@@ -59,13 +59,13 @@ public class InsertSetGeneratorDB2i extends InsertSetGenerator {
             }
         }
         if (index > 0) {
-            result.add(completeStatement(statement, sql));
+            result.add(generateCompleteStatement(statement, sql));
         }
 
-        return result.toArray(new UnparsedSql[result.size()]);
+        return result.toArray(new Sql[0]);
     }
 
-    private Sql completeStatement(InsertSetStatement statement, StringBuilder sql) {
+    private Sql generateCompleteStatement(InsertSetStatement statement, StringBuilder sql) {
         sql.deleteCharAt(sql.lastIndexOf(","));
         return new UnparsedSql(sql.toString(), getAffectedTable(statement));
     }
