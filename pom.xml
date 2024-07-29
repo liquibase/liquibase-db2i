@@ -2,19 +2,26 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<parent>
+    <parent>
         <groupId>org.liquibase</groupId>
         <artifactId>liquibase-parent-pom</artifactId>
         <version>0.4.0</version> 
     </parent>
 
-	<groupId>org.liquibase.ext</groupId>
-	<artifactId>liquibase-db2i</artifactId>
-	<version>4.29.0-SNAPSHOT</version>
+    <groupId>org.liquibase.ext</groupId>
+    <artifactId>liquibase-db2i</artifactId>
+    <version>4.29.0-SNAPSHOT</version>
 
-	<name>Liquibase Extension: IBM DB2 for iSeries Support</name>
-	<description>Adds support for IBM DB2 for iSeries</description>
-	<url>https://github.com/liquibase/liquibase-db2i</url>
+    <name>Liquibase Extension: IBM DB2 for iSeries Support</name>
+    <description>Adds support for IBM DB2 for iSeries</description>
+    <url>https://github.com/liquibase/liquibase-db2i</url>
+
+    <licenses>
+        <license>
+            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+            <name>Apache License, Version 2.0</name>
+        </license>
+    </licenses>
 
     <scm>
         <connection>scm:git:${project.scm.url}</connection>
