@@ -10,7 +10,7 @@
 
     <groupId>org.liquibase.ext</groupId>
     <artifactId>liquibase-db2i</artifactId>
-    <version>4.33.0-SNAPSHOT</version>
+    <version>4.34.0-SNAPSHOT</version>
 
     <name>Liquibase Extension: IBM DB2 for iSeries Support</name>
     <description>Adds support for IBM DB2 for iSeries</description>
