@@ -3,6 +3,7 @@ package liquibase.ext.db2i.database;
 import liquibase.Scope;
 import liquibase.database.DatabaseConnection;
 import liquibase.database.core.DB2Database;
+import liquibase.database.jvm.JdbcConnection;
 import liquibase.exception.DatabaseException;
 import liquibase.executor.ExecutorService;
 import liquibase.statement.core.RawSqlStatement;
@@ -55,5 +56,16 @@ public class DB2iDatabase extends DB2Database {
             Scope.getCurrentScope().getLog(getClass()).info("Error checking for BOOLEAN type", e);
         }
         return false;
+    }
+
+    /**
+     * DB2 iSeries is the only DB2 variant with {@code supportsSchemas()=true}. Without this override,
+     * the base implementation returns the library/collection name as both {@code catalog} AND
+     * {@code schema} in the target uniqueness attributes (because in DB2 the catalog slot holds the
+     * authorization ID, which on iSeries equals the current library).
+     */
+    @Override
+    protected String resolveSchema(JdbcConnection jdbcConn) {
+        return null;
     }
 }
