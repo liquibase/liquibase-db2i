@@ -9,6 +9,8 @@ import liquibase.statement.core.RawSqlStatement;
 
 public class DB2iDatabase extends DB2Database {
 
+    private static final int MAX_TIMESTAMP_FRACTIONAL_DIGITS = 12;
+
     @Override
     public int getPriority() {
         return super.getPriority()+5;
@@ -55,5 +57,15 @@ public class DB2iDatabase extends DB2Database {
             Scope.getCurrentScope().getLog(getClass()).info("Error checking for BOOLEAN type", e);
         }
         return false;
+    }
+
+    /**
+     * IBM i supports {@code TIMESTAMP(0)} to {@code TIMESTAMP(12)}. liquibase-core allows 12 digits for DB2 only from
+     * version 9.7 on (DB2 LUW); IBM i reports version 7, so {@code TIMESTAMP(10)} to {@code TIMESTAMP(12)} would be
+     * rejected.
+     */
+    @Override
+    public int getMaxFractionalDigitsForTimestamp() {
+        return MAX_TIMESTAMP_FRACTIONAL_DIGITS;
     }
 }

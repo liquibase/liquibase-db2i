@@ -3,3 +3,5 @@ liquibase.ext.db2i.sqlgenerator.InsertSetGeneratorDB2i
 liquibase.ext.db2i.sqlgenerator.SetColumnRemarksGeneratorDB2i
 liquibase.ext.db2i.sqlgenerator.SetNullableGeneratorDB2i
 liquibase.ext.db2i.sqlgenerator.SetTableRemarksGeneratorDB2i
+liquibase.ext.db2i.sqlgenerator.CreateViewGeneratorDB2i
+liquibase.ext.db2i.sqlgenerator.ReorganizeTableGeneratorDB2i
