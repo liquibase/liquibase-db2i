@@ -1,3 +1,4 @@
+liquibase.ext.db2i.sqlgenerator.AddColumnGeneratorDB2i
 liquibase.ext.db2i.sqlgenerator.InsertOrUpdateGeneratorDB2i
 liquibase.ext.db2i.sqlgenerator.InsertSetGeneratorDB2i
 liquibase.ext.db2i.sqlgenerator.SetColumnRemarksGeneratorDB2i
