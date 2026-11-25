@@ -2,15 +2,18 @@ package liquibase.ext.db2i.sqlgenerator;
 
 import liquibase.database.Database;
 import liquibase.datatype.DataTypeFactory;
-import liquibase.exception.LiquibaseException;
 import liquibase.ext.db2i.database.DB2iDatabase;
+import liquibase.sql.Sql;
+import liquibase.sql.UnparsedSql;
 import liquibase.sqlgenerator.SqlGeneratorChain;
 import liquibase.sqlgenerator.core.InsertOrUpdateGenerator;
 import liquibase.sqlgenerator.core.InsertOrUpdateGeneratorDB2;
 import liquibase.statement.DatabaseFunction;
 import liquibase.statement.core.InsertOrUpdateStatement;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 /**
  * DBMS-specific {@link InsertOrUpdateGenerator} for IBM DB2 running on IBM iSeries. Uses "MERGE"-Statement with a
@@ -38,8 +41,46 @@ public class InsertOrUpdateGeneratorDB2i extends InsertOrUpdateGenerator {
 		return new InsertOrUpdateGeneratorDB2().getPriority() + 1;
 	}
 
+	/**
+	 * Builds the complete MERGE statement instead of relying on the template methods of the base class, because the
+	 * base class can neither omit the update part without logging a warning per row nor express {@code onlyUpdate}
+	 * for a MERGE.
+	 * <ul>
+	 * <li>Only columns that are not part of the primary key and for which
+	 * {@link InsertOrUpdateStatement#getAllowColumnUpdate(String)} is true (i.e. {@code allowUpdate} is not
+	 * {@code false}) are updated.</li>
+	 * <li>If there is no such column, {@code WHEN MATCHED} is omitted (insert if missing).</li>
+	 * <li>If {@code onlyUpdate} is set, {@code WHEN NOT MATCHED} is omitted; if there is nothing to update either,
+	 * no SQL is generated.</li>
+	 * </ul>
+	 */
+	@Override
+	public Sql[] generateSql(InsertOrUpdateStatement stmt, Database db, SqlGeneratorChain sqlGeneratorChain) {
+		boolean onlyUpdate = Boolean.TRUE.equals(stmt.getOnlyUpdate());
+		List<String> updatableColumns = getUpdatableColumns(stmt);
+		if (onlyUpdate && updatableColumns.isEmpty()) {
+			return new Sql[0];
+		}
+
+		StringBuilder sql = new StringBuilder(buildMergeHead(stmt, db));
+		if (!onlyUpdate) {
+			sql.append(" WHEN NOT MATCHED THEN ")
+					.append(getInsertStatement(stmt, db, sqlGeneratorChain));
+		}
+		if (!updatableColumns.isEmpty()) {
+			sql.append(getElse(db))
+					.append(buildUpdateSet(stmt, db, updatableColumns));
+		}
+		return new Sql[]{new UnparsedSql(sql.toString(), "", getAffectedTable(stmt))};
+	}
+
 	@Override
 	protected String getRecordCheck(InsertOrUpdateStatement stmt, Database db, String whereClause) {
+		// not used by generateSql, implemented because it is abstract in the base class
+		return buildMergeHead(stmt, db) + " WHEN NOT MATCHED THEN ";
+	}
+
+	private String buildMergeHead(InsertOrUpdateStatement stmt, Database db) {
 		StringBuilder sql = new StringBuilder("MERGE INTO ")
 				.append(db.escapeTableName(stmt.getCatalogName(), stmt.getSchemaName(), stmt.getTableName()))
 				.append(" AS DST ")
@@ -49,15 +90,42 @@ public class InsertOrUpdateGeneratorDB2i extends InsertOrUpdateGenerator {
 				.append(") ) AS SRC( ")
 				.append(buildColumns(stmt))
 				.append(") ON ");
-		String[] keys = stmt.getPrimaryKey().split(",");
-		for (String key : keys) {
+		for (String key : getPrimaryKeyColumns(stmt)) {
 			sql.append("DST.").append(key)
 					.append(" = SRC.").append(key)
 					.append(" AND ");
 		}
 		sql.delete(sql.length() - " AND ".length(), sql.length()); //remove trailing ' AND '
-		sql.append(" WHEN NOT MATCHED THEN ");
 		return sql.toString();
+	}
+
+	private List<String> getPrimaryKeyColumns(InsertOrUpdateStatement stmt) {
+		List<String> keys = new ArrayList<>();
+		for (String key : stmt.getPrimaryKey().split(",")) {
+			String trimmed = key.trim();
+			if (!trimmed.isEmpty()) {
+				keys.add(trimmed);
+			}
+		}
+		return keys;
+	}
+
+	private List<String> getUpdatableColumns(InsertOrUpdateStatement stmt) {
+		List<String> primaryKeyColumns = getPrimaryKeyColumns(stmt);
+		List<String> updatable = new ArrayList<>();
+		for (String column : stmt.getColumnValues().keySet()) {
+			boolean isPrimaryKey = false;
+			for (String key : primaryKeyColumns) {
+				if (key.equalsIgnoreCase(column.trim())) {
+					isPrimaryKey = true;
+					break;
+				}
+			}
+			if (!isPrimaryKey && stmt.getAllowColumnUpdate(column)) {
+				updatable.add(column);
+			}
+		}
+		return updatable;
 	}
 
 	@Override
@@ -84,10 +152,9 @@ public class InsertOrUpdateGeneratorDB2i extends InsertOrUpdateGenerator {
 		return " WHEN MATCHED THEN ";
 	}
 
-	@Override
-	protected String getUpdateStatement(InsertOrUpdateStatement stmt, Database db, String whereClause, SqlGeneratorChain sqlGeneratorChain) throws LiquibaseException {
+	private String buildUpdateSet(InsertOrUpdateStatement stmt, Database db, List<String> updatableColumns) {
 		StringBuilder sql = new StringBuilder("UPDATE SET ");
-		for (String column : stmt.getColumnValues().keySet()) {
+		for (String column : updatableColumns) {
 			sql.append(" ")
 					.append(column)
 					.append(" = ")
